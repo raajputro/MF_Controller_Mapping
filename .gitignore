@@ -1,0 +1,10 @@
+**/.venv
+**/.idea
+**/__pycache__
+**/exported_data
+*.png
+**/artifacts
+**/assets
+**/screenshots_taken
+**/screenshots
+**/*.pyc
