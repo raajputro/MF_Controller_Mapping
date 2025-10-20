@@ -8,3 +8,4 @@
 **/screenshots_taken
 **/screenshots
 **/*.pyc
+**/.env
