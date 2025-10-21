@@ -68,6 +68,7 @@ ACTION_COLORS = {
 # Pytest HTML report setup
 # =========================
 def pytest_configure(config):
+    """Configure pytest and setup directories."""
     ARTIFACTS_DIR.mkdir(exist_ok=True, parents=True)
     VIDEOS_DIR.mkdir(exist_ok=True, parents=True)
     TRACES_DIR.mkdir(exist_ok=True, parents=True)
@@ -87,10 +88,14 @@ def pytest_configure(config):
     browser_env = os.getenv("BROWSER", "chrome").lower()
     config._metadata["Browser"] = browser_env.capitalize()
 
+def pytest_html_report_title(report):
+    """Set the HTML report title."""
+    report.title = "Playwright Test Report"
+
 @pytest.hookimpl(tryfirst=True)
 def pytest_sessionfinish(session, exitstatus):
     """
-    Auto-open the HTML report after run completes (Windows only for simplicity).
+    Auto-open the HTML report after run completes.
     """
     htmlpath = getattr(session.config, "htmlpath", None)
     if htmlpath and Path(htmlpath).exists():
@@ -205,39 +210,92 @@ def open_new_page(context: BrowserContext):
         return page
     return _open
 
+# =========================
+# Enhanced screenshot fixture with HTML report attachment
+# =========================
 @pytest.fixture
 def screenshot(request):
-    def _capture(driver, name: str = "screenshot"):
+    def _capture(page: Page, name: str = "screenshot") -> Path:
         screenshots_dir = request.config.screenshots_dir
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         filename = f"{request.node.name}_{name}_{timestamp}.png"
         filepath = screenshots_dir / filename
-        driver.save_screenshot(str(filepath))
+        
+        # Take screenshot
+        page.screenshot(path=str(filepath), full_page=True)
+        
+        # Add to HTML report
         extra = getattr(request.node, "extra", [])
         extra.append(extras.image(str(filepath)))
         request.node.extra = extra
+        
+        print(f"Screenshot saved: {filepath}")
         return filepath
     return _capture
 
 # =========================
-# Trace/video handling
+# Trace/video handling with HTML report attachment
 # =========================
 @pytest.fixture(autouse=True)
 def _trace_video_recording(request, context: BrowserContext):
     test_name = request.node.name
-    trace_path = TRACES_DIR / f"{test_name}_{int(time.time())}.zip"
+    timestamp = int(time.time())
+    trace_path = TRACES_DIR / f"{test_name}_{timestamp}.zip"
 
+    # Start tracing
     try:
-        context.tracing.start(screenshots=True, snapshots=True, sources=True)
-    except Exception:
-        pass
+        context.tracing.start(
+            name=test_name,
+            screenshots=True,
+            snapshots=True,
+            sources=True
+        )
+    except Exception as e:
+        print(f"Failed to start tracing: {e}")
 
     yield
 
+    # Stop tracing and save
     try:
         context.tracing.stop(path=str(trace_path))
-    except Exception:
-        pass
+        # Add trace file to report
+        extra = getattr(request.node, "extra", [])
+        extra.append(extras.html(f'<a href="{trace_path}" target="_blank">View Trace</a>'))
+        request.node.extra = extra
+    except Exception as e:
+        print(f"Failed to stop tracing: {e}")
+
+# =========================
+# Video attachment to HTML report
+# =========================
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    """Attach videos and screenshots to HTML report."""
+    pytest_html = item.config.pluginmanager.getplugin('html')
+    outcome = yield
+    report = outcome.get_result()
+    extra = getattr(report, 'extra', [])
+    
+    if report.when == 'call' or report.failed:
+        # Attach video if available
+        try:
+            context = item.funcargs.get('context')
+            if context and hasattr(context, 'pages') and context.pages:
+                page = context.pages[0]
+                video = page.video
+                if video:
+                    video_path = video.path()
+                    if video_path and Path(video_path).exists():
+                        # Copy video to artifacts directory with test name
+                        test_video_path = VIDEOS_DIR / f"{item.name}_{int(time.time())}.webm"
+                        shutil.copy2(video_path, test_video_path)
+                        extra.append(pytest_html.extras.html(
+                            f'<video width="800" controls><source src="{test_video_path}" type="video/webm">Your browser does not support the video tag.</video>'
+                        ))
+        except Exception as e:
+            print(f"Failed to attach video: {e}")
+    
+    report.extra = extra
 
 # =========================
 # Auto-highlighter helpers
@@ -380,4 +438,3 @@ try:
     _install_auto_highlighter()
 except Exception:
     pass
-# =========================
