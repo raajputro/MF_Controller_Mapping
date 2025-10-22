@@ -38,50 +38,74 @@ def test_00_login_to_environment(page):
     f_page.get_full_page_screenshot("Login SS")
 
 
-# def test_02_map_feature_controller(page):
-#     f_page = feature_list_page(page)
-#     main_nav = ''
-#     secn_nav = ['Menu','Feature','Feature List']
-#     f_page.navigate_to_page(main_nav_val=main_nav, sub_nav_val=secn_nav)
-#     f_page.get_full_page_screenshot("Feature Page SS")
-#     dt = {
-#         'module':'Microfinance',
-#         'feature':'VO',
-#         'action':'Garbage32',
-#         'feature_url':'loanAccount/getGroupInfoList',
-#         'controller':'VOCategoryController',
-#         'ctrl_item':'save'        
-#     }
-#     f_page.perform_action(dt['module'], dt['feature'])
-#     f_page.get_full_page_screenshot("Feature Selection SS")
+def test_02_map_feature_controller(page):
+    f_page = feature_list_page(page)
+    fi_page = feature_info_page(page)
+    fcm_page = feature_controller_mapping_page(page)
     
-#     fi_page = feature_info_page(page)
-#     feature_data = [dt['action'], dt['feature_url']]
-#     fi_page.perform_action_2(feature_data = feature_data)
+    dfs = f_page.read_excel_file()
+    main_nav = ''
+    secn_nav = ['Menu','Feature','Feature List']
+    f_page.navigate_to_page(main_nav_val=main_nav, sub_nav_val=secn_nav)
+    f_page.get_full_page_screenshot("Feature Page SS")
+    feature_df = dfs['Features'].ffill() # type: ignore
+    # # Feature
+    # Module	Feature Info List	Feature Type	Feature Name	Feature URL
+    # # Feature Controller Mapping
+    # Module	Feature	Action	Parent Controller	Controllers
+    # # Voucher Map
+    # Project	Module	Event Type	Event	Amount Type	    Reference	Voucher Type	Dr Account Head Type	Dr Account Head	    Cr Account Head Type	Cr Account Head	    Remarks
+    data_list = feature_df.to_dict(orient='records')
+    for dt in data_list:
+        f_page.perform_action(feat_name=dt['Module'], itm_name=dt['Feature Info List'])
+        f_page.get_full_page_screenshot(f"Feature Selection {dt['Feature Name']} SS")
+        
+        
+        feature_data = [dt['Feature Name'], dt['Feature URL']]
+        fi_page.perform_action_2(feature_data = feature_data)
+        
+        
+        secn_nav = ['Menu','Feature','Feature Controller Mapping']
+        fcm_page.navigate_to_page(main_nav_val=main_nav, sub_nav_val=secn_nav)
+        fcm_page.perform_action(data=dt)
+    dt = {
+        'module':'Microfinance',
+        'feature':'VO',
+        'action':'Garbage32',
+        'feature_url':'loanAccount/getGroupInfoList',
+        'controller':'VOCategoryController',
+        'ctrl_item':'save'        
+    }
+    f_page.perform_action(dt['module'], dt['feature'])
+    f_page.get_full_page_screenshot("Feature Selection SS")
     
-#     fcm_page = feature_controller_mapping_page(page)    
-#     secn_nav = ['Menu','Feature','Feature Controller Mapping']
-#     fcm_page.navigate_to_page(main_nav_val=main_nav, sub_nav_val=secn_nav)
-#     fcm_page.perform_action(data=dt)
+    fi_page = feature_info_page(page)
+    feature_data = [dt['action'], dt['feature_url']]
+    fi_page.perform_action_2(feature_data = feature_data)
+    
+    fcm_page = feature_controller_mapping_page(page)    
+    secn_nav = ['Menu','Feature','Feature Controller Mapping']
+    fcm_page.navigate_to_page(main_nav_val=main_nav, sub_nav_val=secn_nav)
+    fcm_page.perform_action(data=dt)
 
-#     ###################################################################################################################################
-#     ###################################################################################################################################
+    ###################################################################################################################################
+    ###################################################################################################################################
     
-#     uac_page = user_access_control_page(page)
-#     secn_nav = ['User','Access Control','Access Control']
-#     uac_page.navigate_to_page(main_nav_val=main_nav, sub_nav_val=secn_nav)
-#     uac_page.get_full_page_screenshot("User Access Control SS")
-#     dt2 = {
-#         'role':'ROLE_BA',
-#         'module':'Microfinance',
-#         'feature':'VO',
-#         'actions':{'Garbage32'},        
-#     }
-#     uac_page.set_user_access_for_feature_action(role=dt2['role'], module=dt2['module'], feature=dt2['feature'], actions=dt2['actions'])
-#     uac_page.get_full_page_screenshot("User Access Control Mapped SS")
+    uac_page = user_access_control_page(page)
+    secn_nav = ['User','Access Control','Access Control']
+    uac_page.navigate_to_page(main_nav_val=main_nav, sub_nav_val=secn_nav)
+    uac_page.get_full_page_screenshot("User Access Control SS")
+    dt2 = {
+        'role':'ROLE_BA',
+        'module':'Microfinance',
+        'feature':'VO',
+        'actions':{'Garbage32'},        
+    }
+    uac_page.set_user_access_for_feature_action(role=dt2['role'], module=dt2['module'], feature=dt2['feature'], actions=dt2['actions'])
+    uac_page.get_full_page_screenshot("User Access Control Mapped SS")
 
-#     up_page = utility_page(page=page, base_url=test_url)
-#     up_page.perform_utility_action()
+    up_page = utility_page(page=page, base_url=test_url)
+    up_page.perform_utility_action()
 
 
 def test_03_perform_voucher_mapping(page):    

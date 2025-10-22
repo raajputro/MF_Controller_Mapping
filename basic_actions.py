@@ -2,7 +2,7 @@
 # this page contains all the common actions to be performed in this project
 from playwright.sync_api import expect
 from datetime import datetime, timedelta
-import os, re, random, sys
+import os, re, random, sys, pandas as pd
 from typing import Optional
 # from db_query.check_db import db_query_execution
 
@@ -40,7 +40,7 @@ class BasicActions:
             branch_code: Optional[str] = "0",
             timeout: Optional[int] = 30_000,
             post_login_selector: Optional[str] = None,  # fallback dashboard shell
-    ) -> bool:
+    ) -> bool: # type: ignore
         """Log in robustly; handle post-login overlay; verify success."""
         user_name = (user_name or "").strip()
         pass_word = (pass_word or "").strip()
@@ -62,7 +62,7 @@ class BasicActions:
             self.wait_to_load_element(self.officeDropdown)            
             self.officeDropdown.click()
             self.page.get_by_text(branch_code).click()            
-            self.click_on_btn(self.goBtn)
+            self.click_on_btn(self.goBtn) # type: ignore
 
         # # After selecting branch code, we expected an overlay should be seen
         # # But this overlay is not available in all Test Environments or have
@@ -171,7 +171,7 @@ class BasicActions:
         DATE_FMT = "%d-%m-%Y"
         WORKING_WEEKDAYS = {0, 1, 2, 3, 6}  # Mon(0), Tue(1), Wed(2), Thu(3), Sun(6)
 
-        def week_of_month_sunday_start(d: datetime.date) -> int:
+        def week_of_month_sunday_start(d: datetime.date) -> int: # type: ignore
             """Calculate week of month, Sunday as week start."""
             to_sun0 = lambda wk: (wk + 1) % 7  # Mon=0..Sun=6 -> Sun=0..Sat=6
             first = d.replace(day=1)
@@ -219,12 +219,14 @@ class BasicActions:
     def extract_toast_message_content(self, elem):
         #elem = self.page.locator('//div[@id="jGrowl"]//child::div[@class="message"]')
         return elem.inner_text()
+    
 
     def select_from_dropdown_selector(self, elem, text):
         elem.fill(text)
         self.page.keyboard.press(" ")
         self.page.get_by_text(text, exact=True).click()
         self.wait_for_timeout(2000)
+
 
     def select_from_options_index(self, elem, index):
         if hasattr(elem, "select_option"):
@@ -233,10 +235,30 @@ class BasicActions:
         else:
             self.page.select_option(elem, index=index)
 
+
     def double_click(self, element):
         """Perform double click on an element"""
         element.click()
         element.click()
+
+    
+    def read_excel_file(self, file_path='./feature_excel/feature_map.xlsx'):
+        """
+        Check if file exists and return dataframe dictionary
+        """
+        if not os.path.isfile(file_path):
+            print(f"File not found: {file_path}")
+            return None
+        
+        """
+        Reads an Excel file and returns its content as a pandas DataFrame.
+        """
+        try:
+            all_dfs = pd.read_excel(file_path, sheet_name=None)
+            return all_dfs
+        except Exception as e:
+            print(f"Error reading {file_path}: {e}")
+            return None
 
 
     # def query_data(self, db_server, query):
