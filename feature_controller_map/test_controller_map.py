@@ -30,20 +30,21 @@ match test_env:
 test_branch_code = '0' if test_user_type == 'SA' else os.getenv('amar_hishab_test_branch')
 test_user = os.getenv('amar_hishab_test_user_SA') if test_user_type == 'SA' else os.getenv('amar_hishab_test_user')
 test_pass = os.getenv('amar_hishab_test_pass')
-
+dfs = None
 
 def test_00_login_to_environment(page):
     f_page = feature_list_page(page)
     f_page.perform_login(given_url=test_url, user_name=test_user, pass_word=test_pass, branch_code=test_branch_code) # type: ignore
     f_page.get_full_page_screenshot("Login SS")
+    global dfs
+    dfs = f_page.read_excel_file()
 
 
 def test_02_map_feature_controller(page):
     f_page = feature_list_page(page)
     fi_page = feature_info_page(page)
     fcm_page = feature_controller_mapping_page(page)
-    
-    dfs = f_page.read_excel_file()
+
     main_nav = ''
     secn_nav = ['Menu','Feature','Feature List']
     f_page.navigate_to_page(main_nav_val=main_nav, sub_nav_val=secn_nav)
@@ -52,41 +53,18 @@ def test_02_map_feature_controller(page):
     # # Feature
     # Module	Feature Info List	Feature Type	Feature Name	Feature URL
     # # Feature Controller Mapping
-    # Module	Feature	Action	Parent Controller	Controllers
-    # # Voucher Map
-    # Project	Module	Event Type	Event	Amount Type	    Reference	Voucher Type	Dr Account Head Type	Dr Account Head	    Cr Account Head Type	Cr Account Head	    Remarks
+    # Module	Feature	Action	Parent Controller	Controllers    
     data_list = feature_df.to_dict(orient='records')
-    for dt in data_list:
-        f_page.perform_action(feat_name=dt['Module'], itm_name=dt['Feature Info List'])
-        f_page.get_full_page_screenshot(f"Feature Selection {dt['Feature Name']} SS")
-        
-        
-        feature_data = [dt['Feature Name'], dt['Feature URL']]
-        fi_page.perform_action_2(feature_data = feature_data)
-        
-        
-        secn_nav = ['Menu','Feature','Feature Controller Mapping']
-        fcm_page.navigate_to_page(main_nav_val=main_nav, sub_nav_val=secn_nav)
-        fcm_page.perform_action(data=dt)
-    dt = {
-        'module':'Microfinance',
-        'feature':'VO',
-        'action':'Garbage32',
-        'feature_url':'loanAccount/getGroupInfoList',
-        'controller':'VOCategoryController',
-        'ctrl_item':'save'        
-    }
-    f_page.perform_action(dt['module'], dt['feature'])
-    f_page.get_full_page_screenshot("Feature Selection SS")
-    
-    fi_page = feature_info_page(page)
-    feature_data = [dt['action'], dt['feature_url']]
-    fi_page.perform_action_2(feature_data = feature_data)
-    
-    fcm_page = feature_controller_mapping_page(page)    
+    for dt in data_list:            # Enter each feature from excel
+        f_page.perform_action(feat_name=dt['Module'], itm_name=dt['Feature Info List'])                
+        fi_page.perform_action_2(feature_data = [dt['Feature Name'], dt['Feature URL']])
+            
     secn_nav = ['Menu','Feature','Feature Controller Mapping']
     fcm_page.navigate_to_page(main_nav_val=main_nav, sub_nav_val=secn_nav)
-    fcm_page.perform_action(data=dt)
+    feature_controller_map_df = dfs['Feature_Controller_Map'].ffill() # type: ignore
+    data_list = feature_controller_map_df.to_dict(orient='records')
+    for dt in data_list:            # Enter each feature controller mapping from excel
+        fcm_page.perform_action(data=dt)
 
     ###################################################################################################################################
     ###################################################################################################################################
@@ -95,49 +73,48 @@ def test_02_map_feature_controller(page):
     secn_nav = ['User','Access Control','Access Control']
     uac_page.navigate_to_page(main_nav_val=main_nav, sub_nav_val=secn_nav)
     uac_page.get_full_page_screenshot("User Access Control SS")
-    dt2 = {
-        'role':'ROLE_BA',
-        'module':'Microfinance',
-        'feature':'VO',
-        'actions':{'Garbage32'},        
-    }
-    uac_page.set_user_access_for_feature_action(role=dt2['role'], module=dt2['module'], feature=dt2['feature'], actions=dt2['actions'])
-    uac_page.get_full_page_screenshot("User Access Control Mapped SS")
+
+    # # User Access Map
+    # Role	Module	Feature_Name	Action
+    uac_df = dfs['User_Access_Map'].ffill() # type: ignore
+    data_list = uac_df.to_dict(orient='records')    
+    for dt in data_list:            # Enter each user access control mapping from excel
+        roles = dt['Role'].split(',')
+        for role in roles:
+            uac_page.set_user_access_for_feature_action(role=role.strip().upper(), module=dt['Module'], feature=dt['Feature_Name'], actions=dt['Actions'])    
 
     up_page = utility_page(page=page, base_url=test_url)
     up_page.perform_utility_action()
 
 
 def test_03_perform_voucher_mapping(page):    
+    # # Voucher Map
+    # Project	Module	Event Type	Event	Amount Type	    Reference	Voucher Type	Dr Account Head Type	Dr Account Head	    Cr Account Head Type	Cr Account Head	    Remarks
     main_nav = 'Accounting'
     secn_nav = ['Admin','Feature configuration','Chart of Accounts Mapping']
     vm_page = voucher_mapping_page(page)
-    vm_page.navigate_to_page(main_nav_val=main_nav, sub_nav_val=secn_nav)
-    vm_page.get_full_page_screenshot("Voucher Mapping Page SS")    
     
-    coa_search_dt = {
-        'project':'015 - Microfinance (Dabi)',
-        'module':'Microfinance',
-        'event_type':'Savings',
-        'event':'Current Savings Collection',        
-    }
-    coa_map_dt = [    
-        {
-            'amount_type':'Current Savings Collection',
-            'reference':'Voluntary Savings',
-            'voucher_type':'Journal Voucher',
-            'debit_head':'2104010101-01 - Current Accounts Deposit',
-            'credit_head':'2104010101-01 - Current Accounts Deposit'
-        },
-        {
-            'amount_type':'Balance Transfer In Own Branch For Other Project',
-            'reference':'Voluntary Savings',
-            'voucher_type':'Journal Voucher',
-            'debit_head':'2104010101-01 - Current Accounts Deposit',
-            'credit_head':'2110010101-08 - Current account with Head office'
-        },
-    ]
-    vm_page.perform_action(coa_search_data=coa_search_dt, coa_map_data=coa_map_dt)
+    df_voucher_map = dfs['Voucher_Map'].ffill() # type: ignore
+    data_list = df_voucher_map.to_dict(orient='records')
+
+    for dt in data_list:            
+        vm_page.navigate_to_page(main_nav_val=main_nav, sub_nav_val=secn_nav)
+        coa_search_dt = {
+            'project': dt['Project'],
+            'module': dt['Module'],
+            'event_type': dt['Event Type'],
+            'event': dt['Event'],
+        }
+        coa_map_dt = [    
+            {
+                'amount_type': dt['Amount Type'],
+                'reference': dt['Reference'],
+                'voucher_type': dt['Voucher Type'],
+                'debit_head': dt['Dr Account Head'],
+                'credit_head': dt['Cr Account Head']
+            }
+        ]
+        vm_page.perform_action(coa_search_data=coa_search_dt, coa_map_data=coa_map_dt)
 
 
 def test_99_logout_from_environment(page):
