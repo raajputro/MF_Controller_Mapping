@@ -242,7 +242,7 @@ class BasicActions:
         element.click()
 
     
-    def read_excel_file(self, file_path='./feature_excel/feature_map.xlsx'):
+    def read_excel_file(self, file_path='./feature_excel/test_feature_map.xlsx'):
         """
         Check if file exists and return dataframe dictionary
         """

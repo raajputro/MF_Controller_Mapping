@@ -46,75 +46,85 @@ def test_02_map_feature_controller(page):
     fcm_page = feature_controller_mapping_page(page)
 
     main_nav = ''
-    secn_nav = ['Menu','Feature','Feature List']
-    f_page.navigate_to_page(main_nav_val=main_nav, sub_nav_val=secn_nav)
-    f_page.get_full_page_screenshot("Feature Page SS")
-    feature_df = dfs['Features'].ffill() # type: ignore
-    # # Feature
-    # Module	Feature Info List	Feature Type	Feature Name	Feature URL
-    # # Feature Controller Mapping
-    # Module	Feature	Action	Parent Controller	Controllers    
-    data_list = feature_df.to_dict(orient='records')
-    for dt in data_list:            # Enter each feature from excel
-        f_page.perform_action(feat_name=dt['Module'], itm_name=dt['Feature Info List'])                
-        fi_page.perform_action_2(feature_data = [dt['Feature Name'], dt['Feature URL']])
+    # secn_nav = ['Menu','Feature','Feature List']
+    # f_page.navigate_to_page(main_nav_val=main_nav, sub_nav_val=secn_nav)
+    # f_page.get_full_page_screenshot("Feature Page SS")
+    # feature_df = dfs['Features'].ffill() # type: ignore
+    # # # Feature
+    # # Module	Feature Info List	Feature Type	Feature Name	Feature URL
+    # # # Feature Controller Mapping
+    # # Module	Feature	Action	Parent Controller	Controllers    
+    # data_list = feature_df.to_dict(orient='records')
+    # print(data_list)
+    # for dt in data_list:            # Enter each feature from excel
+    #     f_page.navigate_to_page(main_nav_val=main_nav, sub_nav_val=secn_nav)
+    #     f_page.perform_action(feat_name=dt['Module'], itm_name=dt['Feature Info List'])                
+    #     fi_page.perform_action_2(feature_data = [dt['Feature Name'], dt['Feature URL']])
             
-    secn_nav = ['Menu','Feature','Feature Controller Mapping']
-    fcm_page.navigate_to_page(main_nav_val=main_nav, sub_nav_val=secn_nav)
-    feature_controller_map_df = dfs['Feature_Controller_Map'].ffill() # type: ignore
-    data_list = feature_controller_map_df.to_dict(orient='records')
-    for dt in data_list:            # Enter each feature controller mapping from excel
-        fcm_page.perform_action(data=dt)
+    # secn_nav = ['Menu','Feature','Feature Controller Mapping']
+    # fcm_page.navigate_to_page(main_nav_val=main_nav, sub_nav_val=secn_nav)
+    # feature_controller_map_df = dfs['Feature_Controller_Map'].ffill() # type: ignore
+    # data_list = feature_controller_map_df.to_dict(orient='records')
+    # print(data_list)
+    # for dt in data_list:            # Enter each feature controller mapping from excel
+    #     fcm_page.navigate_to_page(main_nav_val=main_nav, sub_nav_val=secn_nav)
+    #     fcm_page.perform_action(data=dt)
 
     ###################################################################################################################################
     ###################################################################################################################################
     
     uac_page = user_access_control_page(page)
     secn_nav = ['User','Access Control','Access Control']
-    uac_page.navigate_to_page(main_nav_val=main_nav, sub_nav_val=secn_nav)
-    uac_page.get_full_page_screenshot("User Access Control SS")
+    # uac_page.navigate_to_page(main_nav_val=main_nav, sub_nav_val=secn_nav)
+    # uac_page.get_full_page_screenshot("User Access Control SS")
 
     # # User Access Map
     # Role	Module	Feature_Name	Action
     uac_df = dfs['User_Access_Map'].ffill() # type: ignore
     data_list = uac_df.to_dict(orient='records')    
-    for dt in data_list:            # Enter each user access control mapping from excel
+    print(data_list)
+    for dt in data_list:            # Enter each user access control mapping from excel        
         roles = dt['Role'].split(',')
         for role in roles:
-            uac_page.set_user_access_for_feature_action(role=role.strip().upper(), module=dt['Module'], feature=dt['Feature_Name'], actions=dt['Actions'])    
+            r = role.strip().upper()
+            uac_page.navigate_to_page(main_nav_val=main_nav, sub_nav_val=secn_nav)
+            print(f'Setting access for Role: {r}, Module: {dt["Module"]}, Feature: {dt["Feature_Name"]}, Action: {dt["Actions"]}')
+            uac_page.set_user_access_for_feature_action(role=r, module=dt['Module'], feature=dt['Feature_Name'], action=dt['Actions'])
+            uac_page.wait_for_timeout(5000)
 
     up_page = utility_page(page=page, base_url=test_url)
     up_page.perform_utility_action()
 
 
-def test_03_perform_voucher_mapping(page):    
-    # # Voucher Map
-    # Project	Module	Event Type	Event	Amount Type	    Reference	Voucher Type	Dr Account Head Type	Dr Account Head	    Cr Account Head Type	Cr Account Head	    Remarks
-    main_nav = 'Accounting'
-    secn_nav = ['Admin','Feature configuration','Chart of Accounts Mapping']
-    vm_page = voucher_mapping_page(page)
-    
-    df_voucher_map = dfs['Voucher_Map'].ffill() # type: ignore
-    data_list = df_voucher_map.to_dict(orient='records')
+# def test_03_perform_voucher_mapping(page):    
+#     # # Voucher Map
+#     # Project	Module	Event Type	Event	Amount Type	    Reference	Voucher Type	Dr Account Head Type	Dr Account Head	    Cr Account Head Type	Cr Account Head	    Remarks
+#     main_nav = 'Accounting'
+#     secn_nav = ['Admin','Feature configuration','Chart of Accounts Mapping']
+#     vm_page = voucher_mapping_page(page)
 
-    for dt in data_list:            
-        vm_page.navigate_to_page(main_nav_val=main_nav, sub_nav_val=secn_nav)
-        coa_search_dt = {
-            'project': dt['Project'],
-            'module': dt['Module'],
-            'event_type': dt['Event Type'],
-            'event': dt['Event'],
-        }
-        coa_map_dt = [    
-            {
-                'amount_type': dt['Amount Type'],
-                'reference': dt['Reference'],
-                'voucher_type': dt['Voucher Type'],
-                'debit_head': dt['Dr Account Head'],
-                'credit_head': dt['Cr Account Head']
-            }
-        ]
-        vm_page.perform_action(coa_search_data=coa_search_dt, coa_map_data=coa_map_dt)
+#     df_voucher_map = dfs['Voucher_Map'].ffill() # type: ignore
+#     data_list = df_voucher_map.to_dict(orient='records')
+#     print(data_list)
+
+#     for dt in data_list:            
+#         vm_page.navigate_to_page(main_nav_val=main_nav, sub_nav_val=secn_nav)
+#         coa_search_dt = {
+#             'project': dt['Project'],
+#             'module': dt['Module'],
+#             'event_type': dt['Event Type'],
+#             'event': dt['Event'],
+#         }
+#         coa_map_dt = [    
+#             {
+#                 'amount_type': dt['Amount Type'],
+#                 'reference': dt['Reference'],
+#                 'voucher_type': dt['Voucher Type'],
+#                 'debit_head': dt['Dr Account Head'],
+#                 'credit_head': dt['Cr Account Head']
+#             }
+#         ]
+#         vm_page.perform_action(coa_search_data=coa_search_dt, coa_map_data=coa_map_dt)
 
 
 def test_99_logout_from_environment(page):
