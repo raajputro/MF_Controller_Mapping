@@ -82,18 +82,24 @@ def test_02_map_feature_controller(page):
     # Role	Module	Feature_Name	Action
     uac_df = dfs['User_Access_Map'].ffill() # type: ignore
     data_list = uac_df.to_dict(orient='records')    
+    print('**************************** User Access Control Data List ****************************')
     print(data_list)
+    print('***************************************************************************************************************************')    
+    uac_page.navigate_to_page(main_nav_val=main_nav, sub_nav_val=secn_nav)    
+    print('***************************************************************************************************************************')
+    print('***************************************************************************************************************************')
     for dt in data_list:            # Enter each user access control mapping from excel        
         roles = dt['Role'].split(',')
         for role in roles:
-            r = role.strip().upper()
-            uac_page.navigate_to_page(main_nav_val=main_nav, sub_nav_val=secn_nav)
+            r = role.strip().upper()            
+            print('***************************************************************************************************************************')
             print(f'Setting access for Role: {r}, Module: {dt["Module"]}, Feature: {dt["Feature_Name"]}, Action: {dt["Actions"]}')
+            print('***************************************************************************************************************************')
             uac_page.set_user_access_for_feature_action(role=r, module=dt['Module'], feature=dt['Feature_Name'], action=dt['Actions'])
             uac_page.wait_for_timeout(5000)
 
-    up_page = utility_page(page=page, base_url=test_url)
-    up_page.perform_utility_action()
+    # up_page = utility_page(page=page, base_url=test_url)
+    # up_page.perform_utility_action()
 
 
 # def test_03_perform_voucher_mapping(page):    
